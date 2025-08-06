@@ -2,10 +2,10 @@ const express = require("express")
 const app = express()
 const PORT = 3000
 
-const boardRouter = require("./routes/board")
+const charRouter = require("./routes/character")
 
 app.use(express.json());
-app.use("/board", boardRouter)
+app.use("/character", charRouter)
 
 
 
