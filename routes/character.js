@@ -1,100 +1,106 @@
 const express = require("express")
+let Character = require('../models/characterModel')
 const router = express.Router()
 
-let char = require('../models/characterModel')
-
-const findIndexId = (idParam) => {
-    return char.findIndex(c => c.id == Number(idParam))
-}
-
-router.get('/', (req, res) => {
-    try {
-        res.status(200).json({ message: "전체 게시물 가져오기", char })
-    } catch (error) {
-        res.status(500).json({ message: "전체 게시물 가져오기 실패", error })
-    }
-})
-
-router.get("/:id", (req, res) => {
-    try {
-        const charId = Number(req.params.id)
-        const index = findIndexId(charId)
-        if (index === -1) {
-            return res.status(404).json({ message: "게시글 조회중 오류" })
-        }
-
-        res.status(200).json({ message: "게시글1개 조회 완료", character : char[index] })
-    } catch (error) {
-        console.error("게시글 조회 중 오류", error)
-        res.status(500).json({ message: "서버 오류" })
-    }
-})
-
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
     try {
         const { name, level, isOnline } = req.body
 
-        if (!name || !level) {
-            return res.status(400).json({ message: '이름과 레벨을 모두 입력하세요.' })
+        if (!name || typeof level !== 'number') {
+            return res.status(400).json({ message: 'name과 level은 필수 입니다.' })
         }
 
-        const newChar = {
-            id: Date.now(),
+        const newCharacter = new Character({
             name,
             level,
-            isOnline: isOnline ?? false //빈값인 경우는 null일때   false
-        }
+            isOnline : isOnline ?? false
+        })
 
-        char.push(newChar)
+        const saveChar = await newCharacter.save()
 
-        res.status(200).json({ message: "게시물 추가 완료", char })
+        res.status(200).json({ message: '캐릭터 추가하기 성공', character: saveChar })
     } catch (error) {
-        res.status(500).json({ message: "게시물 추가 실패", error })
+        res.status(500).json({ message: "서버오류", error })
     }
 })
 
-router.put('/:id', (req, res) => {
+router.get('/', async (req, res) => {
     try {
-        const charId = Number(req.params.id)
+        const character = await Character.find()
 
-        const index = findIndexId(charId)
-
-
-        if (index === -1) {
-            return res.status(404).json({ message: "게시글 없음" })
-        }
-        const updateData = req.body
-
-        char[index] = {
-            ...char[index],
-            ...updateData
-        }
-
-        res.status(200).json({ message: "게시물 수정 완료", character: char[index] })
+        res.status(200).json({ message: '캐릭터 조회하기 성공', character })
     } catch (error) {
-        res.status(500).json({ message: "게시물 수정 실패", error })
+        res.status(500).json({ message: "서버오류", error })
     }
 })
 
-router.delete('/:id', (req, res) => {
+router.get('/:id', async (req, res) => {
     try {
-        const charId = Number(req.params.id)
 
-        const index = findIndexId(charId)
+        const charId = req.params.id
 
+        const character = await Character.findById(charId)
 
-        if (index === -1) {
-            return res.status(404).json({ message: "게시글 없음" })
+        if (!character) {
+            res.status(404).json({ message: '캐릭터를 찾을 수 없음' })
         }
 
-        char.splice(index, 1)
-
-        res.status(200).json({ message: "게시물 삭제 완료", char })
+        res.status(200).json({ message: '캐릭터 조회하기 성공', character })
     } catch (error) {
-        res.status(500).json({ message: "게시물 삭제 실패", error })
+        res.status(500).json({ message: "서버오류", error })
     }
 })
 
+router.put('/:id', async (req, res) => {
+    try {
 
+        const { name, level, isOnline } = req.body
+
+        if (!name || typeof level !== 'number') {
+            return res.status(400).json({ message: 'name과 level은 필수 입니다.' })
+        }
+
+        const updateChar = await Character.findByIdAndUpdate(
+
+            req.params.id,
+
+            {
+                name,
+                level,
+                isOnline : isOnline ?? false
+            },{
+                new : true,
+                runValidators : true
+            }
+        )
+
+        if (!updateChar) {
+            res.status(404).json({ message: '캐릭터를 찾을 수 없음' })
+        }
+
+        res.status(200).json({ message: '캐릭터 수정하기 성공', character : updateChar })
+    } catch (error) {
+        res.status(500).json({ message: "서버오류", error })
+    }
+})
+
+router.delete('/:id', async (req, res) => {
+    try {
+
+        const charId = req.params.id
+
+        const character = await Character.findByIdAndDelete(charId)
+
+
+
+        if (!character) {
+            res.status(404).json({ message: '캐릭터를 찾을 수 없음' })
+        }
+
+        res.status(200).json({ message: '캐릭터 삭제하기 성공', character })
+    } catch (error) {
+        res.status(500).json({ message: "서버오류", error })
+    }
+})
 
 module.exports = router
